@@ -14,7 +14,10 @@ public class ThirdPersonMovement : MonoBehaviour
     public float minDistance = 0.5f;
     public LayerMask collisionLayers;
     public float separationCushion = 0.15f;
-    public float smoothSpeed = 15f;
+
+    [Header("Smooth Damping (Fixes Jitter)")]
+    public float smoothTime = 0.08f;
+    private Vector3 currentVelocity;
 
     [HideInInspector] public bool isPaused = false;
 
@@ -46,7 +49,7 @@ public class ThirdPersonMovement : MonoBehaviour
 
         Quaternion rotation = Quaternion.Euler(xRotation, yRotation, 0);
         Vector3 targetPivotPoint = target.position + pivotOffset;
-        smoothedPivotPoint = Vector3.Lerp(smoothedPivotPoint, targetPivotPoint, smoothSpeed * Time.deltaTime);
+        smoothedPivotPoint = Vector3.SmoothDamp(smoothedPivotPoint, targetPivotPoint, ref currentVelocity, smoothTime);
         Vector3 desiredCameraPos = smoothedPivotPoint - rotation * Vector3.forward * distance;
 
         RaycastHit hit;
