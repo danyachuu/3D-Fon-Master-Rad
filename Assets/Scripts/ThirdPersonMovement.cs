@@ -14,10 +14,13 @@ public class ThirdPersonMovement : MonoBehaviour
     public float minDistance = 0.5f;
     public LayerMask collisionLayers;
     public float separationCushion = 0.15f;
+    public float cameraRadius = 0.2f;
 
     [Header("Smooth Damping (Fixes Jitter)")]
     public float smoothTime = 0.08f;
+    public float distanceSmoothTime = 0.05f;
     private Vector3 currentVelocity;
+    private float distanceVelocity;
 
     [HideInInspector] public bool isPaused = false;
 
@@ -41,7 +44,8 @@ public class ThirdPersonMovement : MonoBehaviour
 
     void LateUpdate()
     {
-        if (isPaused) return;
+        if (isPaused || target == null) return;
+
 
         yRotation += Input.GetAxis("Mouse X") * mouseSensitivity;
         xRotation -= Input.GetAxis("Mouse Y") * mouseSensitivity;
@@ -52,15 +56,18 @@ public class ThirdPersonMovement : MonoBehaviour
         smoothedPivotPoint = Vector3.SmoothDamp(smoothedPivotPoint, targetPivotPoint, ref currentVelocity, smoothTime);
         Vector3 desiredCameraPos = smoothedPivotPoint - rotation * Vector3.forward * distance;
 
+        Vector3 rayDirection = (desiredCameraPos - smoothedPivotPoint).normalized;
+        float targetDistance = distance;
+
         RaycastHit hit;
-        if (Physics.Linecast(smoothedPivotPoint, desiredCameraPos, out hit, collisionLayers))
+        if (Physics.SphereCast(smoothedPivotPoint, cameraRadius, rayDirection, out hit, distance, collisionLayers))
         {
-            currentDistance = Mathf.Clamp(hit.distance - separationCushion, minDistance, distance);
+            if (hit.transform != target && !hit.transform.IsChildOf(target))
+            {
+                targetDistance = Mathf.Clamp(hit.distance - separationCushion, minDistance, distance);
+            }
         }
-        else
-        {
-            currentDistance = distance;
-        }
+        currentDistance = Mathf.SmoothDamp(currentDistance, targetDistance, ref distanceVelocity, distanceSmoothTime);
 
         Vector3 finalCameraPosition = smoothedPivotPoint - rotation * Vector3.forward * currentDistance;
 
