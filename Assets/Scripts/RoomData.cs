@@ -4,7 +4,7 @@ using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewRoomData", menuName = "Faculty/Room Data")]
 
-public class RoomData : MonoBehaviour
+public class RoomData : ScriptableObject
 {
     [Header("Room Identification")]
     public string roomID;
@@ -13,6 +13,10 @@ public class RoomData : MonoBehaviour
     [Header("Location Info")]
     public string buildingSection;
     public string floor;
+
+    [Header("Details & Description")]
+    [TextArea(3, 6)]
+    public string description;
 
     [Header("Scene Reference")]
     public GameObject doorObject;
