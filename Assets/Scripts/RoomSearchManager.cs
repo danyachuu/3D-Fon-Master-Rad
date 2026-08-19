@@ -113,6 +113,7 @@ public class RoomSearchManager : MonoBehaviour
     public void OnSearchInputChanged(string query)
     {
         ClearResults();
+        ResetInfoDisplay();
 
         if (string.IsNullOrEmpty(query.Trim())) return;
 
@@ -120,9 +121,10 @@ public class RoomSearchManager : MonoBehaviour
 
         foreach (RoomData room in allRooms)
         {
-            if (room.roomID.ToLower().Contains(cleanQuery) ||
-                room.roomName.ToLower().Contains(cleanQuery) ||
-                room.buildingSection.ToLower().Contains(cleanQuery))
+            if (room != null &&
+           ((!string.IsNullOrEmpty(room.roomID) && room.roomID.ToLower().Contains(cleanQuery)) ||
+            (!string.IsNullOrEmpty(room.roomName) && room.roomName.ToLower().Contains(cleanQuery)) ||
+            (!string.IsNullOrEmpty(room.buildingSection) && room.buildingSection.ToLower().Contains(cleanQuery))))
             {
                 CreateResultButton(room);
             }
@@ -152,10 +154,10 @@ public class RoomSearchManager : MonoBehaviour
 
         if (roomInfoText != null)
         {
-            roomInfoText.text = $"ID: {room.roomID}\n" +
-                                $"Tip: {room.roomName}\n" +
-                                $"Sektor: {room.buildingSection}\n" +
-                                $"Sprat: {room.floor}\n" +
+            roomInfoText.text = $"ID: {room.roomID}\n\n" +
+                                $"Tip: {room.roomName}\n\n" +
+                                $"Sektor: {room.buildingSection}\n\n" +
+                                $"Sprat: {room.floor}\n\n" +
                                 $"Opis: {room.description}";
         }
 
@@ -203,15 +205,13 @@ public class RoomSearchManager : MonoBehaviour
 
         activeHighlightedRenderers.Clear();
         originalMaterials.Clear();
-        selectedRoom = null;
-        ResetInfoDisplay();
     }
 
     private void ResetInfoDisplay()
     {
         if (roomInfoText != null)
         {
-            roomInfoText.text = "ID: /\nTip: /\nSektor: /\nSprat: /\nOpis: /";
+            roomInfoText.text = "ID: /\n\nTip: /\n\nSektor: /\n\nSprat: /\n\nOpis: /";
         }
     }
 
