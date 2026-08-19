@@ -23,6 +23,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("UI Settings")]
     public GameObject menuPanel;
+    public GameObject searchPanel;
     private bool isMenuOpen = false;
 
     public ThirdPersonMovement cameraScript;
@@ -95,21 +96,24 @@ public class PlayerController : MonoBehaviour
     public void ToggleMenu()
     {
         isMenuOpen = !isMenuOpen;
-        cameraScript.isPaused = isMenuOpen;
-
-        if (menuPanel != null)
-            menuPanel.SetActive(isMenuOpen);
+        if (cameraScript != null) cameraScript.isPaused = isMenuOpen;
 
         if (isMenuOpen)
         {
-            Time.timeScale = 0f; 
+            Time.timeScale = 0f;
             LockCursor(false);
+
+            if (menuPanel != null) menuPanel.SetActive(true);
+            if (searchPanel != null) searchPanel.SetActive(false);
         }
         else
         {
-            Time.timeScale = 1f; 
+            Time.timeScale = 1f;
             LockCursor(true);
-            
+
+            if (menuPanel != null) menuPanel.SetActive(false);
+            if (searchPanel != null) searchPanel.SetActive(false);
+
             if (EventSystem.current != null)
             {
                 EventSystem.current.SetSelectedGameObject(null);

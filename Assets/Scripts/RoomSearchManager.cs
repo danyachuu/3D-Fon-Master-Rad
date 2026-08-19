@@ -20,6 +20,12 @@ public class RoomSearchManager : MonoBehaviour
     [Header("Room Info UI")]
     public TMP_Text roomInfoText;
 
+    [Header("Highlight Settings")]
+    public Material wallHackMaterial;
+
+    private List<Renderer> activeHighlightedRenderers = new List<Renderer>();
+    private List<Material> originalMaterials = new List<Material>();
+
     [Header("Data Registry")]
     public List<RoomData> allRooms = new List<RoomData>();
 
@@ -56,6 +62,28 @@ public class RoomSearchManager : MonoBehaviour
         ResetInfoDisplay();
     }
 
+    public void ToggleMenuUI()
+    {
+        bool isAnyPanelActive = (searchPanel != null && searchPanel.activeSelf) ||
+                               (previousMenuPanel != null && previousMenuPanel.activeSelf);
+
+        if (isAnyPanelActive)
+        {
+            if (searchPanel != null) searchPanel.SetActive(false);
+            if (previousMenuPanel != null) previousMenuPanel.SetActive(false);
+
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+        else
+        {
+            if (previousMenuPanel != null) previousMenuPanel.SetActive(true);
+
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+    }
+
     public void OpenSearchPanel()
     {
         if (previousMenuPanel != null) previousMenuPanel.SetActive(false);
@@ -70,6 +98,8 @@ public class RoomSearchManager : MonoBehaviour
     {
         if (searchPanel != null) searchPanel.SetActive(false);
         if (previousMenuPanel != null) previousMenuPanel.SetActive(true);
+
+        ClearActiveHighlight();
     }
 
     public void TriggerSearchFromButton()
@@ -129,9 +159,54 @@ public class RoomSearchManager : MonoBehaviour
                                 $"Opis: {room.description}";
         }
 
-        // Place door highlighting logic call here in the next step
+        HighlightTargetDoor(room);
         Debug.Log($"Selected room: {room.roomID}. Target room data linked!");
     }
+
+    private void HighlightTargetDoor(RoomData room)
+    {
+        ClearActiveHighlight();
+
+        RoomComponent[] sceneDoors = FindObjectsOfType<RoomComponent>();
+        foreach (RoomComponent doorComp in sceneDoors)
+        {
+            if (doorComp.data == room)
+            {
+                Renderer[] renderers = doorComp.GetComponentsInChildren<Renderer>();
+
+                foreach (Renderer rend in renderers)
+                {
+                    if (rend != null && wallHackMaterial != null)
+                    {
+                        activeHighlightedRenderers.Add(rend);
+                        originalMaterials.Add(rend.material);
+
+                        rend.allowOcclusionWhenDynamic = false;
+
+                        rend.material = wallHackMaterial;
+                    }
+                }
+            }
+        }
+    }
+
+    public void ClearActiveHighlight()
+    {
+        for (int i = 0; i < activeHighlightedRenderers.Count; i++)
+        {
+            if (activeHighlightedRenderers[i] != null && i < originalMaterials.Count)
+            {
+                activeHighlightedRenderers[i].material = originalMaterials[i];
+                activeHighlightedRenderers[i].allowOcclusionWhenDynamic = true;
+            }
+        }
+
+        activeHighlightedRenderers.Clear();
+        originalMaterials.Clear();
+        selectedRoom = null;
+        ResetInfoDisplay();
+    }
+
     private void ResetInfoDisplay()
     {
         if (roomInfoText != null)
