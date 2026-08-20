@@ -181,11 +181,22 @@ public class RoomSearchManager : MonoBehaviour
                     if (rend != null && wallHackMaterial != null)
                     {
                         activeHighlightedRenderers.Add(rend);
-                        originalMaterials.Add(rend.material);
+
+                        Material[] originalMats = rend.sharedMaterials;
+                        for (int i = 0; i < originalMats.Length; i++)
+                        {
+                            originalMaterials.Add(originalMats[i]);
+                        }
+
+                        Material[] hackArray = new Material[originalMats.Length];
+                        for (int i = 0; i < hackArray.Length; i++)
+                        {
+                            hackArray[i] = wallHackMaterial;
+                        }
 
                         rend.allowOcclusionWhenDynamic = false;
 
-                        rend.material = wallHackMaterial;
+                        rend.materials = hackArray;
                     }
                 }
             }
@@ -194,12 +205,25 @@ public class RoomSearchManager : MonoBehaviour
 
     public void ClearActiveHighlight()
     {
-        for (int i = 0; i < activeHighlightedRenderers.Count; i++)
+        int matIndex = 0;
+        foreach (Renderer rend in activeHighlightedRenderers)
         {
-            if (activeHighlightedRenderers[i] != null && i < originalMaterials.Count)
+            if (rend != null)
             {
-                activeHighlightedRenderers[i].material = originalMaterials[i];
-                activeHighlightedRenderers[i].allowOcclusionWhenDynamic = true;
+                int slotCount = rend.sharedMaterials.Length;
+                Material[] restoredMats = new Material[slotCount];
+
+                for (int i = 0; i < slotCount; i++)
+                {
+                    if (matIndex < originalMaterials.Count)
+                    {
+                        restoredMats[i] = originalMaterials[matIndex];
+                        matIndex++;
+                    }
+                }
+
+                rend.materials = restoredMats;
+                rend.allowOcclusionWhenDynamic = true;
             }
         }
 
