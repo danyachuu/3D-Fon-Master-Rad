@@ -34,6 +34,8 @@ public class RoomSearchManager : MonoBehaviour
 
     void Start()
     {
+        if (searchPanel != null) searchPanel.SetActive(false);
+
         RoomComponent[] foundRooms = FindObjectsOfType<RoomComponent>();
         foreach (RoomComponent roomComp in foundRooms)
         {
@@ -99,7 +101,6 @@ public class RoomSearchManager : MonoBehaviour
         if (searchPanel != null) searchPanel.SetActive(false);
         if (previousMenuPanel != null) previousMenuPanel.SetActive(true);
 
-        ClearActiveHighlight();
     }
 
     public void TriggerSearchFromButton()
