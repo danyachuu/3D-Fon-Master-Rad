@@ -18,7 +18,5 @@ public class RoomData : ScriptableObject
     [TextArea(3, 6)]
     public string description;
 
-    [Header("Scene Reference")]
-    public GameObject doorObject;
     
 }

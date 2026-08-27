@@ -129,17 +129,13 @@ public class PlayerController : MonoBehaviour
 
     public void ResetToStart()
     {
-        //ovde gasim kontroller jer dolazi do poklapanja zahteva
         controller.enabled = false;
 
-        //ovde vracam na pocetnu poziciju
         transform.position = startPosition;
         transform.rotation = startRotation;
 
-        //ovde se gasi fizika kako se lik ne bi pomerao
         velocity = Vector3.zero;
 
-        //ovde opet palim kontroler
         controller.enabled = true;
 
         Debug.Log("Vraceni ste na pocetnu poziciju.");

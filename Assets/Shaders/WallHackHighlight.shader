@@ -44,10 +44,7 @@ Shader "Custom/WallHackHighlight"
 
             fixed4 frag (v2f i) : COLOR
             {
-                // Smooth sine wave normalized between 0.0 and 1.0
                 float wave = (sin(_Time.y * _BlinkSpeed) + 1.0) * 0.5;
-
-                // Blend color smoothly between Red (_ColorA) and Green (_ColorB)
                 fixed4 col = lerp(_ColorA, _ColorB, wave);
                 return col;
             }
