@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
@@ -24,6 +25,7 @@ public class PlayerController : MonoBehaviour
     [Header("UI Settings")]
     public GameObject menuPanel;
     public GameObject searchPanel;
+    public GameObject mobileControlsOverlay;
     private bool isMenuOpen = false;
 
     public ThirdPersonMovement cameraScript;
@@ -37,7 +39,11 @@ public class PlayerController : MonoBehaviour
         startRotation = transform.rotation;
 
         if (menuPanel != null) menuPanel.SetActive(false);
+
+        #if !UNITY_ANDROID && !UNITY_IOS
+        // Lock cursor on desktop; leave unlocked on mobile/WebGL touch platforms
         LockCursor(true);
+        #endif
 
         Time.timeScale = 1f;
     }
@@ -52,6 +58,7 @@ public class PlayerController : MonoBehaviour
         if (!isMenuOpen)
         {
             HandleMovement();
+            HandleTouchInteraction();
         }
     }
 
@@ -61,8 +68,16 @@ public class PlayerController : MonoBehaviour
         if (isGrounded && velocity.y < 0)
             velocity.y = -2f;
 
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
+        // 1. Read input from New Input System (Virtual Joystick / Gamepad)
+        Vector2 stickInput = Vector2.zero;
+        if (Gamepad.current != null)
+        {
+            stickInput = Gamepad.current.leftStick.ReadValue();
+        }
+
+        // 2. Fallback to legacy keyboard WASD if no stick input is detected
+        float h = stickInput.x != 0 ? stickInput.x : Input.GetAxis("Horizontal");
+        float v = stickInput.y != 0 ? stickInput.y : Input.GetAxis("Vertical");
 
         Vector3 direction = new Vector3(h, 0f, v).normalized;
 
@@ -83,14 +98,31 @@ public class PlayerController : MonoBehaviour
             controller.Move(moveDir.normalized * currentTargetSpeed * Time.deltaTime);
         }
 
-        if (Input.GetButtonDown("Jump") && isGrounded)
-        {
-            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-            animator.SetTrigger("Jump");
-        }
-
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
+    }
+
+    void HandleTouchInteraction()
+    {
+        if (Input.touchCount > 0 && Input.GetTouch(0).phase == UnityEngine.TouchPhase.Began)
+        {
+            Touch touch = Input.GetTouch(0);
+
+            // Prevent tapping through UI buttons
+            if (EventSystem.current != null && !EventSystem.current.IsPointerOverGameObject(touch.fingerId))
+            {
+                Ray ray = Camera.main.ScreenPointToRay(touch.position);
+                if (Physics.Raycast(ray, out RaycastHit hit))
+                {
+                    // Triggers if tapping on a door directly
+                    RoomComponent room = hit.collider.GetComponentInParent<RoomComponent>();
+                    if (room != null && room.data != null)
+                    {
+                        Debug.Log($"Tapped on door leading to: {room.data.roomID}");
+                    }
+                }
+            }
+        }
     }
 
     public void ToggleMenu()
@@ -105,14 +137,21 @@ public class PlayerController : MonoBehaviour
 
             if (menuPanel != null) menuPanel.SetActive(true);
             if (searchPanel != null) searchPanel.SetActive(false);
+            if (mobileControlsOverlay != null) mobileControlsOverlay.SetActive(false); // Hide joystick while searching
         }
         else
         {
             Time.timeScale = 1f;
+
+            #if UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || UNITY_WEBGL
+            LockCursor(false); // Keep mouse free to interact with UI / Joystick
+            #else
             LockCursor(true);
+            #endif
 
             if (menuPanel != null) menuPanel.SetActive(false);
             if (searchPanel != null) searchPanel.SetActive(false);
+            if (mobileControlsOverlay != null) mobileControlsOverlay.SetActive(true); // Re-enable joystick
 
             if (EventSystem.current != null)
             {
