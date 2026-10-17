@@ -106,8 +106,8 @@ public class ThirdPersonMovement : MonoBehaviour
                 {
                     if (touch.phase == TouchPhase.Moved)
                     {
-                        yRotation += touch.deltaPosition.x * touchSensitivity;
-                        xRotation -= touch.deltaPosition.y * touchSensitivity;
+                        yRotation -= touch.deltaPosition.x * touchSensitivity;
+                        xRotation += touch.deltaPosition.y * touchSensitivity;
                         xRotation = Mathf.Clamp(xRotation, -30f, 60f);
                     }
 
@@ -150,8 +150,8 @@ public class ThirdPersonMovement : MonoBehaviour
             Vector2 delta = currentMousePos - lastMousePosition;
 
             // Update rotation using actual screen delta
-            yRotation += delta.x * (touchSensitivity * 0.5f);
-            xRotation -= delta.y * (touchSensitivity * 0.5f);
+            yRotation -= delta.x * (touchSensitivity * 0.5f);
+            xRotation += delta.y * (touchSensitivity * 0.5f);
             xRotation = Mathf.Clamp(xRotation, -30f, 60f);
 
             lastMousePosition = currentMousePos;

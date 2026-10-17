@@ -68,7 +68,7 @@ public class PlayerController : MonoBehaviour
         if (isGrounded && velocity.y < 0)
             velocity.y = -2f;
 
-        // 1. Read input from New Input System (Virtual Joystick / Gamepad)
+        // 1. Read input vector from New Input System
         Vector2 stickInput = Vector2.zero;
         if (Gamepad.current != null)
         {
@@ -79,16 +79,26 @@ public class PlayerController : MonoBehaviour
         float h = stickInput.x != 0 ? stickInput.x : Input.GetAxis("Horizontal");
         float v = stickInput.y != 0 ? stickInput.y : Input.GetAxis("Vertical");
 
-        Vector3 direction = new Vector3(h, 0f, v).normalized;
+        // Keep raw unnormalized vector to measure drag distance (magnitude between 0.0 and 1.0)
+        Vector3 rawInput = new Vector3(h, 0f, v);
+        float inputMagnitude = rawInput.magnitude;
 
-        bool isRunning = Input.GetKey(KeyCode.LeftShift) && direction.magnitude > 0.1f;
-        float currentTargetSpeed = isRunning ? runSpeed : moveSpeed;
-        float animSpeed = isRunning ? direction.magnitude * 2f : direction.magnitude;
+        Vector3 direction = rawInput.normalized;
 
-        animator.SetFloat("Speed", animSpeed);
-        animator.SetBool("isGrounded", isGrounded);
+        // Trigger run if Shift is held on keyboard OR joystick is pushed past 85% of max deflection
+        bool isRunning = Input.GetKey(KeyCode.LeftShift) || inputMagnitude >= 0.85f;
 
-        if (direction.magnitude >= 0.1f)
+        // Smoothly scale speed based on joystick deflection (analog feel) or run speed
+        float currentTargetSpeed = isRunning ? runSpeed : (moveSpeed * Mathf.Clamp01(inputMagnitude));
+        float animSpeed = isRunning ? 2f : inputMagnitude;
+
+        if (animator != null)
+        {
+            animator.SetFloat("Speed", animSpeed);
+            animator.SetBool("isGrounded", isGrounded);
+        }
+
+        if (inputMagnitude >= 0.1f)
         {
             float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cameraTransform.eulerAngles.y;
             float angle = Mathf.LerpAngle(transform.eulerAngles.y, targetAngle, rotationSpeed * Time.deltaTime);

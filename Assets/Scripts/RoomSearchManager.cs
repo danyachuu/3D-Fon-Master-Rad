@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class RoomSearchManager : MonoBehaviour
 {
@@ -31,6 +32,8 @@ public class RoomSearchManager : MonoBehaviour
 
     private RoomData selectedRoom;
 
+    private TouchScreenKeyboard mobileKeyboard;
+
 
     void Start()
     {
@@ -49,19 +52,76 @@ public class RoomSearchManager : MonoBehaviour
         {
             searchInputField.onValueChanged.AddListener(OnSearchInputChanged);
             searchInputField.onSubmit.AddListener((text) => OnSearchInputChanged(text));
+
+            // Attach PointerClick event so keyboard ONLY opens when tapping the field
+            EventTrigger trigger = searchInputField.gameObject.GetComponent<EventTrigger>();
+            if (trigger == null) trigger = searchInputField.gameObject.AddComponent<EventTrigger>();
+
+            // Clear any old triggers to prevent duplicate callbacks
+            trigger.triggers.Clear();
+
+            EventTrigger.Entry entry = new EventTrigger.Entry();
+            entry.eventID = EventTriggerType.PointerClick;
+            entry.callback.AddListener((data) => { OpenMobileKeyboard(); });
+            trigger.triggers.Add(entry);
         }
 
-        if (searchButton != null)
-        {
-            searchButton.onClick.AddListener(TriggerSearchFromButton);
-        }
-
-        if (backButton != null)
-        {
-            backButton.onClick.AddListener(OpenPreviousPanel);
-        }
+        if (searchButton != null) searchButton.onClick.AddListener(TriggerSearchFromButton);
+        if (backButton != null) backButton.onClick.AddListener(OpenPreviousPanel);
 
         ResetInfoDisplay();
+    }
+
+    void Update()
+    {
+        // Sync text from active mobile keyboard into input field while typing
+        if (mobileKeyboard != null && searchInputField != null)
+        {
+            if (mobileKeyboard.status == TouchScreenKeyboard.Status.Visible)
+            {
+                searchInputField.text = mobileKeyboard.text;
+            }
+            else if (mobileKeyboard.status == TouchScreenKeyboard.Status.Done ||
+                     mobileKeyboard.status == TouchScreenKeyboard.Status.Canceled)
+            {
+                searchInputField.text = mobileKeyboard.text;
+                mobileKeyboard = null;
+            }
+        }
+        DetectOutsideTapToCloseKeyboard();
+    }
+
+    void DetectOutsideTapToCloseKeyboard()
+    {
+        if (mobileKeyboard == null || !mobileKeyboard.active) return;
+
+        // Check screen click / touch start
+        bool wasTapped = false;
+        Vector2 tapPosition = Vector2.zero;
+
+        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+        {
+            wasTapped = true;
+            tapPosition = Input.GetTouch(0).position;
+        }
+        else if (Input.GetMouseButtonDown(0))
+        {
+            wasTapped = true;
+            tapPosition = Input.mousePosition;
+        }
+
+        if (wasTapped && searchInputField != null)
+        {
+            // Check if the tap landed outside the Input Field's RectTransform
+            RectTransform inputRect = searchInputField.GetComponent<RectTransform>();
+            Canvas parentCanvas = searchInputField.GetComponentInParent<Canvas>();
+            Camera guiCamera = (parentCanvas != null && parentCanvas.renderMode == RenderMode.ScreenSpaceCamera) ? parentCanvas.worldCamera : null;
+
+            if (!RectTransformUtility.RectangleContainsScreenPoint(inputRect, tapPosition, guiCamera))
+            {
+                CloseMobileKeyboard();
+            }
+        }
     }
 
     public void ToggleMenuUI()
@@ -93,7 +153,57 @@ public class RoomSearchManager : MonoBehaviour
 
         ResetInfoDisplay();
         ClearResults();
-        if (searchInputField != null) searchInputField.text = "";
+
+        if (searchInputField != null)
+        {
+            searchInputField.text = "";
+        }
+    }
+
+    public void OpenMobileKeyboard()
+    {
+        if (searchInputField == null) return;
+
+        searchInputField.Select();
+        searchInputField.ActivateInputField();
+
+        #if UNITY_IOS || UNITY_ANDROID || UNITY_WEBGL
+        if (TouchScreenKeyboard.isSupported)
+        {
+            // Open and store active instance reference
+            mobileKeyboard = TouchScreenKeyboard.Open(searchInputField.text, TouchScreenKeyboardType.Default, false, false, false, false, "Pretraži...");
+        }
+        #endif
+    }
+
+    public void CloseMobileKeyboard()
+    {
+        if (mobileKeyboard != null)
+        {
+            mobileKeyboard.active = false;
+            mobileKeyboard = null;
+        }
+
+        if (EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+        }
+    }
+
+    public void FocusInputField()
+    {
+        if (searchInputField == null) return;
+
+        searchInputField.Select();
+        searchInputField.ActivateInputField();
+
+        // Triggers the browser/native virtual keyboard on mobile devices
+        #if UNITY_IOS || UNITY_ANDROID || UNITY_WEBGL
+        if (TouchScreenKeyboard.isSupported)
+        {
+            TouchScreenKeyboard.Open(searchInputField.text, TouchScreenKeyboardType.Default);
+        }
+        #endif
     }
 
     public void OpenPreviousPanel()
